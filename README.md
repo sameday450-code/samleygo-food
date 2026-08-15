@@ -1,10 +1,7 @@
 # Food Delivery — Full-Stack NestJS + React Native Course
 
-A full-stack food delivery application built from scratch with NestJS and Expo. This is the companion repository for the **CodeWithLari** YouTube course.
+A full-stack food delivery application built from scratch with NestJS and Expo. This is the companion repository for the **SamTeck Digital**.
 
-📺 **[Watch the full course on YouTube →](https://youtube.com/@codewithlari)**
-
----
 
 ## What You'll Build
 
@@ -53,7 +50,7 @@ A complete food delivery platform with three roles — customers order food, res
 | Cache / GPS | [Upstash Redis](https://upstash.com) |
 | Payments | [Stripe](https://stripe.com) |
 | Real-time | [Socket.IO](https://socket.io) |
-| File uploads | [UploadThing](https://uploadthing.com) |
+| File uploads | [Cloudinary](https://cloudinary.com) |
 | Shared types | `@food-delivery/types` workspace package |
 | Package manager | pnpm |
 
@@ -64,8 +61,8 @@ A complete food delivery platform with three roles — customers order food, res
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/laribright/food-delivery-application.git
-cd food-delivery-application
+git clone https://github.com/sameday450-code/samleygo-food.git
+cd samleygo-food
 ```
 
 ### 2. Install dependencies
@@ -140,8 +137,10 @@ STRIPE_WEBHOOK_SECRET=whsec_xxx
 UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
 UPSTASH_REDIS_REST_TOKEN=xxx
 
-# UploadThing — uploadthing.com dashboard
-UPLOADTHING_TOKEN=sk_live_xxx
+# Coudinary — cloudinary.com → your dashboard → API Keys
+CLOUDINARY_CLOUD_NAME=*********
+CLOUDINARY_API_KEY=******************
+CLOUDINARY_API_SECRET=****************************
 
 # Optional
 PORT=3000
