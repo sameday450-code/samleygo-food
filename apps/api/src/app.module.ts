@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
@@ -13,10 +14,11 @@ import { DriverModule } from './driver/driver.module';
 import { LocationModule } from './location/location.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { CacheModule } from './cache/cache.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: join(__dirname, '..', '..', '.env') }),
     CacheModule,
     DbModule,
     AuthModule,
@@ -28,6 +30,7 @@ import { CacheModule } from './cache/cache.module';
     DriverModule,
     LocationModule,
     ReviewsModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

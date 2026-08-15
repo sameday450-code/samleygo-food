@@ -1,31 +1,27 @@
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { Tabs } from 'expo-router';
 import React from 'react';
+import { View } from 'react-native';
+import CustomTabBar from '@/components/custom-tab-bar';
+
+const OWNER_TABS = [
+  { name: '(index)', label: 'Orders', icon: 'receipt' as const },
+  { name: 'menu', label: 'Menu', icon: 'restaurant' as const },
+  { name: 'analytics', label: 'Analytics', icon: 'bar-chart' as const },
+  { name: 'profile', label: 'Profile', icon: 'person-circle' as const },
+];
 
 export default function OwnerLayout() {
   return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="(index)">
-        <NativeTabs.Trigger.Label>Orders</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="shippingbox.fill" md="local_shipping" />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="menu">
-        <NativeTabs.Trigger.Label>Menu</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="menucard.fill" md="restaurant_menu" />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="analytics">
-        <NativeTabs.Trigger.Label>Analytics</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="chart.bar.xaxis" md="bar_chart" />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="profile">
-        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf="person.crop.circle.fill"
-          md="account_circle"
-        />
-      </NativeTabs.Trigger>
-    </NativeTabs>
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <Tabs
+        screenOptions={{ headerShown: false }}
+        tabBar={(props) => <CustomTabBar tabs={OWNER_TABS} {...props} />}
+      >
+        <Tabs.Screen name="(index)" />
+        <Tabs.Screen name="menu" />
+        <Tabs.Screen name="analytics" />
+        <Tabs.Screen name="profile" />
+      </Tabs>
+    </View>
   );
 }

@@ -6,6 +6,18 @@ export class CacheService {
   private readonly redis: Redis;
   private readonly logger = new Logger(CacheService.name);
 
+  // Safely serialize objects that may contain circular references (Drizzle ORM)
+  private safeStringify(value: unknown): string {
+    const seen = new WeakSet();
+    return JSON.stringify(value, (_key, val) => {
+      if (typeof val === 'object' && val !== null) {
+        if (seen.has(val)) return undefined;
+        seen.add(val);
+      }
+      return val;
+    });
+  }
+
   constructor() {
     this.redis = new Redis({
       url: process.env.UPSTASH_REDIS_REST_URL!,
@@ -30,7 +42,7 @@ export class CacheService {
 
   async set(key: string, value: unknown, ttlSeconds = 300): Promise<void> {
     try {
-      await this.redis.set(key, JSON.stringify(value), { ex: ttlSeconds });
+      await this.redis.set(key, this.safeStringify(value), { ex: ttlSeconds });
     } catch (error) {
       this.logger.error(`Cache SET error for key "${key}"`, error);
     }
@@ -43,6 +55,15 @@ export class CacheService {
       await this.redis.del(...keys);
     } catch (error) {
       this.logger.error(`Cache DEL error for keys "${keys.join(', ')}"`, error);
+    }
+  }
+
+  async flushAll(): Promise<void> {
+    try {
+      await this.redis.flushall();
+      this.logger.log('Redis cache flushed');
+    } catch (error) {
+      this.logger.error('Cache flush error', error);
     }
   }
 }

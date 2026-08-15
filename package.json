@@ -6,7 +6,9 @@
   "main": "index.js",
   "scripts": {
     "dev:api": "pnpm --filter api run start:dev",
-    "dev:mobile": "pnpm --filter mobile run start --ios",
+    "dev:mobile": "pnpm --filter mobile run start",
+    "dev:mobile:android": "pnpm --filter mobile run android",
+    "dev:mobile:web": "pnpm --filter mobile run web",
     "dev": "concurrently \"pnpm dev:api\" \"pnpm dev:mobile\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/lib/axios';
 import { Order, RestaurantType } from '@food-delivery/types';
+import { Brand } from '@/constants/theme';
 
 type RestaurantOrder = Order & { items: { id: string }[] };
 
@@ -20,6 +21,15 @@ const STATUS_COLORS: Record<string, string> = {
   PICKED_UP: '#FF6B35',
   DELIVERED: '#22C55E',
   CANCELLED: '#EF4444',
+};
+
+const STATUS_BG: Record<string, string> = {
+  CONFIRMED: '#DBEAFE',
+  PREPARING: '#EDE9FE',
+  READY: '#CFFAFE',
+  PICKED_UP: '#FFF3ED',
+  DELIVERED: '#DCFCE7',
+  CANCELLED: '#FEE2E2',
 };
 
 export default function OwnerAnalyticsScreen() {
@@ -39,7 +49,6 @@ export default function OwnerAnalyticsScreen() {
     enabled: !!restaurant,
   });
 
-  // filter to today's orders only — compared on the frontend
   const todayOrders = useMemo(() => {
     const today = new Date().toDateString();
     return allOrders.filter(
@@ -66,7 +75,7 @@ export default function OwnerAnalyticsScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color={Brand.orange} />
         </View>
       </SafeAreaView>
     );
@@ -74,90 +83,126 @@ export default function OwnerAnalyticsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Text style={styles.title}>Today's Summary</Text>
-      <Text style={styles.date}>
-        {new Date().toLocaleDateString('en-US', {
-          weekday: 'long',
-          month: 'long',
-          day: 'numeric',
-        })}
-      </Text>
-
-      <View style={styles.revenueCard}>
-        <View style={styles.revenueRow}>
-          <View style={styles.revenueItem}>
-            <Text style={styles.revenueValue}>{todayOrders.length}</Text>
-            <Text style={styles.revenueLabel}>Orders</Text>
-          </View>
-          <View style={styles.revenueDivider} />
-          <View style={styles.revenueItem}>
-            <Text style={styles.revenueValue}>${totalRevenue}</Text>
-            <Text style={styles.revenueLabel}>Revenue</Text>
-          </View>
-        </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Analytics</Text>
+        <Text style={styles.date}>
+          {new Date().toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+          })}
+        </Text>
       </View>
 
-      {Object.keys(statusCounts).length > 0 && (
-        <View style={styles.statusBreakdown}>
-          {Object.entries(statusCounts).map(([status, count]) => (
-            <View key={status} style={styles.statusRow}>
-              <View
-                style={[
-                  styles.statusDot,
-                  { backgroundColor: STATUS_COLORS[status] ?? '#999' },
-                ]}
-              />
-              <Text style={styles.statusLabel}>{status}</Text>
-              <Text style={styles.statusCount}>{count}</Text>
-            </View>
-          ))}
-        </View>
-      )}
+      <FlatList
+        data={todayOrders}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <>
+            {/* Stats Cards */}
+            <View style={styles.statsRow}>
+              <View style={[styles.statCard, styles.statCardPrimary]}>
+                <View style={styles.statIconContainer}>
+                  <Text style={styles.statIcon}>📦</Text>
+                </View>
+                <Text style={styles.statValue}>{todayOrders.length}</Text>
+                <Text style={styles.statLabel}>Orders Today</Text>
+              </View>
 
-      {todayOrders.length === 0 ? (
-        <View style={styles.centered}>
-          <Text style={styles.emptyText}>No orders today yet</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={todayOrders}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          renderItem={({ item }) => (
+              <View style={[styles.statCard, styles.statCardAccent]}>
+                <View style={styles.statIconContainerAccent}>
+                  <Text style={styles.statIcon}>💰</Text>
+                </View>
+                <Text style={styles.statValueAccent}>${totalRevenue}</Text>
+                <Text style={styles.statLabel}>Revenue</Text>
+              </View>
+            </View>
+
+            {/* Status Breakdown */}
+            {Object.keys(statusCounts).length > 0 && (
+              <View style={styles.statusCard}>
+                <Text style={styles.statusCardTitle}>Order Status</Text>
+                {Object.entries(statusCounts).map(([status, count]) => (
+                  <View key={status} style={styles.statusRow}>
+                    <View style={styles.statusLeft}>
+                      <View
+                        style={[
+                          styles.statusDot,
+                          {
+                            backgroundColor:
+                              STATUS_COLORS[status] ?? '#6B7280',
+                          },
+                        ]}
+                      />
+                      <Text style={styles.statusLabel}>
+                        {status.replace('_', ' ')}
+                      </Text>
+                    </View>
+                    <View style={styles.statusRight}>
+                      <Text style={styles.statusCount}>{count}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Orders List Header */}
+            {todayOrders.length > 0 && (
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Today's Orders</Text>
+                <View style={styles.countBadge}>
+                  <Text style={styles.countBadgeText}>
+                    {todayOrders.length}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </>
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconContainer}>
+              <Text style={styles.emptyIcon}>📊</Text>
+            </View>
+            <Text style={styles.emptyTitle}>No orders today</Text>
+            <Text style={styles.emptySubtitle}>
+              Your daily analytics will appear here once you receive orders.
+            </Text>
+          </View>
+        }
+        renderItem={({ item }) => {
+          const statusColor = STATUS_COLORS[item.status] ?? '#6B7280';
+          const statusBg = STATUS_BG[item.status] ?? '#F3F4F6';
+
+          return (
             <View style={styles.orderCard}>
               <View style={styles.orderHeader}>
                 <Text style={styles.orderId}>
                   #{item.id.slice(0, 8).toUpperCase()}
                 </Text>
                 <View
-                  style={[
-                    styles.statusBadge,
-                    {
-                      backgroundColor:
-                        (STATUS_COLORS[item.status] ?? '#999') + '20',
-                    },
-                  ]}
+                  style={[styles.statusBadge, { backgroundColor: statusBg }]}
                 >
-                  <Text
-                    style={[
-                      styles.statusText,
-                      { color: STATUS_COLORS[item.status] ?? '#999' },
-                    ]}
-                  >
-                    {item.status}
+                  <Text style={[styles.statusText, { color: statusColor }]}>
+                    {item.status.replace('_', ' ')}
                   </Text>
                 </View>
               </View>
-              <Text style={styles.orderItems}>
-                {item.items.length} item{item.items.length !== 1 ? 's' : ''}
-              </Text>
-              <Text style={styles.orderTotal}>
-                ${Number(item.totalAmount).toFixed(2)}
-              </Text>
+              <View style={styles.orderDetails}>
+                <Text style={styles.orderItems}>
+                  {item.items.length} item{item.items.length !== 1 ? 's' : ''}
+                </Text>
+                <Text style={styles.orderTotal}>
+                  ${Number(item.totalAmount).toFixed(2)}
+                </Text>
+              </View>
             </View>
-          )}
-        />
-      )}
+          );
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -165,7 +210,7 @@ export default function OwnerAnalyticsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F7F7F8',
   },
   centered: {
     flex: 1,
@@ -173,58 +218,118 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
   },
+
+  // Header
+  header: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
   title: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: '700',
-    paddingHorizontal: 24,
-    paddingTop: 16,
+    color: '#1A1A2E',
+    letterSpacing: -0.3,
   },
   date: {
-    fontSize: 14,
-    color: '#999',
-    paddingHorizontal: 24,
-    marginBottom: 16,
-    marginTop: 4,
-  },
-  revenueCard: {
-    backgroundColor: '#f9f9f9',
-    marginHorizontal: 16,
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 16,
-  },
-  revenueRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  revenueItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  revenueValue: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#333',
-  },
-  revenueLabel: {
     fontSize: 13,
-    color: '#999',
-    marginTop: 4,
+    color: '#6B7280',
+    marginTop: 2,
   },
-  revenueDivider: {
-    width: 1,
-    height: 48,
-    backgroundColor: '#e5e5e5',
-  },
-  statusBreakdown: {
-    marginHorizontal: 16,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 16,
+
+  // List Content
+  listContent: {
     padding: 16,
-    gap: 10,
+    paddingBottom: 100,
+  },
+
+  // Stats Row
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
     marginBottom: 16,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    padding: 16,
+  },
+  statCardPrimary: {
+    // default white card
+  },
+  statCardAccent: {
+    backgroundColor: '#FFF3ED',
+    borderColor: '#FED7AA',
+  },
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  statIconContainerAccent: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#FF6B35',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  statIcon: {
+    fontSize: 18,
+  },
+  statValue: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1A1A2E',
+    marginBottom: 2,
+  },
+  statValueAccent: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: Brand.orange,
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+
+  // Status Card
+  statusCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    padding: 16,
+    marginBottom: 20,
+  },
+  statusCardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A2E',
+    marginBottom: 12,
   },
   statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  statusLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -237,54 +342,124 @@ const styles = StyleSheet.create({
   statusLabel: {
     flex: 1,
     fontSize: 14,
-    color: '#555',
+    color: '#374151',
+    fontWeight: '500',
+    textTransform: 'capitalize',
+  },
+  statusRight: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   statusCount: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#333',
+    color: '#1A1A2E',
   },
-  list: {
-    padding: 16,
-    gap: 10,
+
+  // Section Header
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
   },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1A1A2E',
+  },
+  countBadge: {
+    backgroundColor: Brand.orange,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  countBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  // Order Card
   orderCard: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
     padding: 14,
-    gap: 4,
+    marginBottom: 10,
   },
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
   },
   orderId: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: '700',
+    color: '#1A1A2E',
   },
   statusBadge: {
-    borderRadius: 20,
+    borderRadius: 8,
     paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   statusText: {
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  orderDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   orderItems: {
     fontSize: 13,
-    color: '#777',
+    color: '#6B7280',
   },
   orderTotal: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#333',
-  },
-  emptyText: {
     fontSize: 16,
-    color: '#999',
+    fontWeight: '700',
+    color: Brand.orange,
+  },
+
+  // Empty State
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 48,
+    paddingBottom: 32,
+  },
+  emptyIconContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  emptyIcon: {
+    fontSize: 32,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#1A1A2E',
+    marginBottom: 6,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 32,
   },
 });

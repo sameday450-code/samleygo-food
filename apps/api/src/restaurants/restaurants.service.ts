@@ -76,12 +76,9 @@ export class RestaurantsService {
         .select()
         .from(schema.restaurants)
         .where(
-          and(
-            eq(schema.restaurants.isOpen, true),
-            or(
-              ilike(schema.restaurants.name, `%${search}%`),
-              ilike(schema.restaurants.cuisineType, `%${search}%`),
-            ),
+          or(
+            ilike(schema.restaurants.name, `%${search}%`),
+            ilike(schema.restaurants.cuisineType, `%${search}%`),
           ),
         );
     }
@@ -97,10 +94,9 @@ export class RestaurantsService {
 
     this.logger.log('Cache miss — fetching restaurants from DB');
 
-    const restaurants = this.db
+    const restaurants = await this.db
       .select()
-      .from(schema.restaurants)
-      .where(eq(schema.restaurants.isOpen, true));
+      .from(schema.restaurants);
 
     await this.cacheService.set(CacheKeys.RESTAURANTS_ALL, restaurants, 300);
 

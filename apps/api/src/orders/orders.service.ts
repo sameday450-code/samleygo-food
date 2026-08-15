@@ -190,6 +190,7 @@ export class OrdersService {
     role: string,
   ) {
     const ownerTransitions: Record<string, string[]> = {
+      PENDING: ['CONFIRMED', 'CANCELLED'],
       CONFIRMED: ['PREPARING', 'CANCELLED'],
       PREPARING: ['READY', 'CANCELLED'],
     };

@@ -2,32 +2,28 @@ import { useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { io, Socket } from 'socket.io-client';
 import { api } from '@/lib/axios';
 import { useAuth } from '@/context/auth-context';
 import { Order } from '@food-delivery/types';
+import { Brand } from '@/constants/theme';
 
 export default function DriverActiveScreen() {
-  const insets = useSafeAreaInsets();
-  const TAB_BAR_OFFSET = 88;
-
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const socketRef = useRef<Socket | null>(null);
   const locationWatchRef = useRef<Location.LocationSubscription | null>(null);
 
-  // driver's assigned orders — only PICKED_UP needs GPS + Mark Delivered
   const { data: activeOrders = [], isLoading } = useQuery<Order[]>({
     queryKey: ['driver-active-orders'],
     queryFn: () =>
@@ -47,13 +43,9 @@ export default function DriverActiveScreen() {
       queryClient.invalidateQueries({ queryKey: ['driver-orders'] });
     },
     onError: (e: any) =>
-      Alert.alert(
-        'Error',
-        e?.response?.data?.message ?? 'Something went wrong',
-      ),
+      Alert.alert('Error', e?.response?.data?.message ?? 'Something went wrong'),
   });
 
-  // request permission, connect socket, start GPS watch
   async function startTracking(orderId: string) {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== Location.PermissionStatus.GRANTED) {
@@ -101,153 +93,391 @@ export default function DriverActiveScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.bgContainer}>
+        <Image
+          source={require('../../../assets/images/driver.jpeg')}
+          style={styles.bgImage}
+        />
+        <View style={styles.bgOverlay} />
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color="#FFFFFF" />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!activeOrder) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.centered}>
-          <Text style={styles.emptyText}>No active delivery</Text>
-          <Text style={styles.emptySubText}>
-            Accept an order on Home, or tap a PICKED_UP order in History
-          </Text>
-        </View>
-      </SafeAreaView>
+      <View style={styles.bgContainer}>
+        <Image
+          source={require('../../../assets/images/driver.jpeg')}
+          style={styles.bgImage}
+        />
+        <View style={styles.bgOverlay} />
+        <SafeAreaView style={styles.contentContainer} edges={['top']}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Active Delivery</Text>
+          </View>
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconContainer}>
+              <Ionicons name="car-outline" size={48} color="rgba(255,255,255,0.6)" />
+            </View>
+            <Text style={styles.emptyTitle}>No active delivery</Text>
+            <Text style={styles.emptySubtitle}>
+              Accept an order on Home, or tap a PICKED_UP order in History
+            </Text>
+          </View>
+        </SafeAreaView>
+      </View>
     );
   }
 
+  const orderDate = new Date(activeOrder.createdAt).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View
-        style={
-          (styles.content, { paddingBottom: insets.bottom + TAB_BAR_OFFSET })
-        }
-      >
-        <Text style={styles.title}>Active Delivery</Text>
+    <View style={styles.bgContainer}>
+      {/* Background Image */}
+      <Image
+        source={require('../../../assets/images/driver.jpeg')}
+        style={styles.bgImage}
+      />
+      <View style={styles.bgOverlay} />
 
-        <View style={styles.card}>
-          <Text style={styles.label}>Order ID</Text>
-          <Text style={styles.value}>
-            #{activeOrder.id.slice(0, 8).toUpperCase()}
-          </Text>
-
-          <Text style={styles.label}>Deliver to</Text>
-          <Text style={styles.value}>{activeOrder.deliveryAddress}</Text>
-
-          <Text style={styles.label}>Status</Text>
-          <Text style={[styles.value, styles.status]}>
-            {activeOrder.status}
-          </Text>
+      <SafeAreaView style={styles.contentContainer} edges={['top']}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Active Delivery</Text>
         </View>
 
-        <View style={styles.trackingBadge}>
-          <Text style={styles.trackingText}>📡 Broadcasting location...</Text>
+        {/* Delivery Card */}
+        <View style={styles.deliveryCard}>
+          <View style={styles.deliveryCardHeader}>
+            <View style={styles.orderIdContainer}>
+              <Ionicons name="receipt" size={16} color={Brand.orange} />
+              <Text style={styles.orderId}>
+                #{activeOrder.id.slice(0, 8).toUpperCase()}
+              </Text>
+            </View>
+            <View style={styles.activeBadge}>
+              <View style={styles.activeDot} />
+              <Text style={styles.activeText}>Active</Text>
+            </View>
+          </View>
+
+          <View style={styles.deliveryDetails}>
+            <View style={styles.detailRow}>
+              <View style={styles.detailIcon}>
+                <Ionicons name="location" size={16} color="#3B82F6" />
+              </View>
+              <View style={styles.detailInfo}>
+                <Text style={styles.detailLabel}>Deliver to</Text>
+                <Text style={styles.detailValue} numberOfLines={2}>
+                  {activeOrder.deliveryAddress}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.detailDivider} />
+
+            <View style={styles.detailRow}>
+              <View style={styles.detailIcon}>
+                <Ionicons name="time" size={16} color="#8B5CF6" />
+              </View>
+              <View style={styles.detailInfo}>
+                <Text style={styles.detailLabel}>Order time</Text>
+                <Text style={styles.detailValue}>{orderDate}</Text>
+              </View>
+            </View>
+
+            <View style={styles.detailDivider} />
+
+            <View style={styles.detailRow}>
+              <View style={styles.detailIcon}>
+                <Ionicons name="cash" size={16} color="#22C55E" />
+              </View>
+              <View style={styles.detailInfo}>
+                <Text style={styles.detailLabel}>Earning</Text>
+                <Text style={[styles.detailValue, { color: '#22C55E' }]}>
+                  $2.99
+                </Text>
+              </View>
+            </View>
+          </View>
         </View>
 
-        <Pressable
-          style={styles.deliveredButton}
-          onPress={() => {
-            Alert.alert('Confirm delivery?', 'Mark this order as delivered?', [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Delivered',
-                onPress: () => markDelivered(activeOrder.id),
-              },
-            ]);
-          }}
-          disabled={isPending}
-        >
-          {isPending ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.deliveredButtonText}>Mark as Delivered</Text>
-          )}
-        </Pressable>
-      </View>
-    </SafeAreaView>
+        {/* Tracking Status */}
+        <View style={styles.trackingCard}>
+          <View style={styles.trackingContent}>
+            <View style={styles.trackingPulse}>
+              <View style={styles.trackingPulseRing} />
+              <Ionicons name="radio" size={20} color="#22C55E" />
+            </View>
+            <View>
+              <Text style={styles.trackingTitle}>Broadcasting location</Text>
+              <Text style={styles.trackingSubtitle}>
+                Customer can see your live location
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Mark Delivered Button */}
+        <View style={styles.bottomSection}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.deliveredButton,
+              pressed && styles.deliveredButtonPressed,
+            ]}
+            onPress={() => {
+              Alert.alert('Confirm delivery?', 'Mark this order as delivered?', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Delivered', onPress: () => markDelivered(activeOrder.id) },
+              ]);
+            }}
+            disabled={isPending}
+          >
+            {isPending ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle" size={22} color="#FFF" />
+                <Text style={styles.deliveredButtonText}>Mark as Delivered</Text>
+              </>
+            )}
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  // ─── Background ──────────────────────────────────────────────
+  bgContainer: {
     flex: 1,
-    padding: 12,
-    backgroundColor: '#fff',
+  },
+  bgImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+  },
+  bgOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  contentContainer: {
+    flex: 1,
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
   },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  emptySubText: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-  },
-  content: {
-    flex: 1,
-    padding: 24,
+
+  // ─── Header ────────────────────────────────────────────────────
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
-    marginBottom: 24,
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
-  card: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 16,
-    padding: 20,
+
+  // ─── Delivery Card ─────────────────────────────────────────────
+  deliveryCard: {
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    marginHorizontal: 16,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+  deliveryCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: '#F9FAFB',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#F0F0F0',
+  },
+  orderIdContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
-    marginBottom: 16,
   },
-  label: {
+  orderId: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1A1A2E',
+  },
+  activeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  activeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#22C55E',
+  },
+  activeText: {
     fontSize: 12,
-    color: '#999',
-    marginTop: 8,
+    fontWeight: '600',
+    color: '#16A34A',
   },
-  value: {
+
+  // Details
+  deliveryDetails: {
+    padding: 16,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  detailIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailInfo: {
+    flex: 1,
+  },
+  detailLabel: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  detailValue: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#333',
+    color: '#1A1A2E',
+    marginTop: 2,
   },
-  status: {
-    color: '#FF6B35',
+  detailDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#F3F4F6',
+    marginVertical: 2,
   },
-  trackingBadge: {
-    backgroundColor: '#DCFCE7',
-    borderRadius: 8,
-    padding: 12,
+
+  // ─── Tracking ──────────────────────────────────────────────────
+  trackingCard: {
+    backgroundColor: 'rgba(34,197,94,0.9)',
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 16,
+    padding: 16,
+  },
+  trackingContent: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    gap: 12,
   },
-  trackingText: {
+  trackingPulse: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trackingPulseRing: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(34,197,94,0.2)',
+  },
+  trackingTitle: {
     fontSize: 14,
-    color: '#16A34A',
-    fontWeight: '500',
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  trackingSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 1,
+  },
+
+  // ─── Bottom ────────────────────────────────────────────────────
+  bottomSection: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingBottom: 100,
   },
   deliveredButton: {
-    backgroundColor: '#FF6B35',
-    borderRadius: 12,
-    padding: 16,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 'auto',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: Brand.orange,
+    borderRadius: 16,
+    paddingVertical: 18,
+    shadowColor: Brand.orange,
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  deliveredButtonPressed: {
+    opacity: 0.9,
   },
   deliveredButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: '#FFFFFF',
+    fontSize: 17,
     fontWeight: '700',
+  },
+
+  // ─── Empty State ───────────────────────────────────────────────
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });

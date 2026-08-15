@@ -1,6 +1,7 @@
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -9,62 +10,80 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/axios';
 import { Order } from '@food-delivery/types';
+import { Brand } from '@/constants/theme';
 
 type DriverOrder = Order & {
   restaurant: { id: string; name: string };
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  READY: '#06B6D4',
-  PICKED_UP: '#FF6B35',
-  DELIVERED: '#22C55E',
-  CANCELLED: '#EF4444',
+const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: keyof typeof Ionicons.glyphMap }> = {
+  READY: { color: '#06B6D4', bg: '#CFFAFE', icon: 'checkmark-circle' },
+  PICKED_UP: { color: Brand.orange, bg: '#FFF3ED', icon: 'bicycle' },
+  DELIVERED: { color: '#22C55E', bg: '#DCFCE7', icon: 'checkmark-done-circle' },
+  CANCELLED: { color: '#EF4444', bg: '#FEE2E2', icon: 'close-circle' },
 };
 
-function DeliveryCard({
-  order,
-  onPress,
-}: {
-  order: DriverOrder;
-  onPress?: () => void;
-}) {
-  const statusColor = STATUS_COLORS[order.status] ?? '#999';
-  const date = new Date(order.createdAt).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+function DeliveryCard({ order, onPress }: { order: DriverOrder; onPress?: () => void }) {
+  const config = STATUS_CONFIG[order.status] ?? { color: '#9CA3AF', bg: '#F3F4F6', icon: 'help-circle' };
+  const date = new Date(order.createdAt);
+  const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   const isActive = order.status === 'PICKED_UP';
 
   return (
     <Pressable
-      style={[styles.card, isActive && styles.cardActive]}
+      style={({ pressed }) => [
+        styles.card,
+        isActive && styles.cardActive,
+        pressed && styles.cardPressed,
+      ]}
       onPress={onPress}
       disabled={!isActive}
     >
       <View style={styles.cardHeader}>
-        <Text style={styles.restaurant}>{order.restaurant.name}</Text>
-        <View
-          style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}
-        >
-          <Text style={[styles.statusText, { color: statusColor }]}>
-            {order.status}
+        <View style={styles.cardHeaderLeft}>
+          <View style={[styles.cardStatusIcon, { backgroundColor: config.bg }]}>
+            <Ionicons name={config.icon} size={16} color={config.color} />
+          </View>
+          <View>
+            <Text style={styles.restaurant}>{order.restaurant.name}</Text>
+            <Text style={styles.orderId}>
+              #{order.id.slice(0, 8).toUpperCase()}
+            </Text>
+          </View>
+        </View>
+        <View style={[styles.statusBadge, { backgroundColor: config.bg }]}>
+          <Text style={[styles.statusText, { color: config.color }]}>
+            {order.status.replace('_', ' ')}
           </Text>
         </View>
       </View>
-      <Text style={styles.address} numberOfLines={1}>
-        📍 {order.deliveryAddress}
-      </Text>
-      <View style={styles.cardFooter}>
-        <Text style={styles.date}>{date}</Text>
-        <Text style={styles.total}>
-          ${Number(order.totalAmount).toFixed(2)}
-        </Text>
+
+      <View style={styles.cardBody}>
+        <View style={styles.cardDetailRow}>
+          <Ionicons name="location-outline" size={14} color="#9CA3AF" />
+          <Text style={styles.address} numberOfLines={1}>
+            {order.deliveryAddress}
+          </Text>
+        </View>
       </View>
+
+      <View style={styles.cardFooter}>
+        <View style={styles.cardFooterLeft}>
+          <Ionicons name="time-outline" size={12} color="#9CA3AF" />
+          <Text style={styles.date}>{dateStr} · {timeStr}</Text>
+        </View>
+        <Text style={styles.total}>${Number(order.totalAmount).toFixed(2)}</Text>
+      </View>
+
       {isActive && (
-        <Text style={styles.tapHint}>Tap to open active delivery →</Text>
+        <View style={styles.activeHint}>
+          <Ionicons name="arrow-forward" size={14} color={Brand.orange} />
+          <Text style={styles.tapHint}>Open active delivery</Text>
+        </View>
       )}
     </Pressable>
   );
@@ -77,53 +96,83 @@ export default function DriverHistoryScreen() {
   });
 
   const deliveredCount = orders.filter((o) => o.status === 'DELIVERED').length;
-  const inProgressCount = orders.filter((o) =>
-    ['READY', 'PICKED_UP'].includes(o.status),
-  ).length;
+  const inProgressCount = orders.filter((o) => ['READY', 'PICKED_UP'].includes(o.status)).length;
+  const totalEarnings = orders.filter((o) => o.status === 'DELIVERED').reduce((sum) => sum + 2.99, 0);
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.bgContainer}>
+        <Image
+          source={require('../../../assets/images/driver.jpeg')}
+          style={styles.bgImage}
+        />
+        <View style={styles.bgOverlay} />
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color="#FFFFFF" />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <Text style={styles.title}>My Deliveries</Text>
+    <View style={styles.bgContainer}>
+      {/* Background Image */}
+      <Image
+        source={require('../../../assets/images/driver.jpeg')}
+        style={styles.bgImage}
+      />
+      <View style={styles.bgOverlay} />
 
-      {orders.length > 0 && (
-        <View style={styles.summaryRow}>
-          {inProgressCount > 0 && (
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryValueLight}>{inProgressCount}</Text>
-              <Text style={styles.summaryLabelLight}>in progress</Text>
-            </View>
-          )}
-          {deliveredCount > 0 && (
-            <View style={[styles.summaryCard, styles.summaryCardMuted]}>
-              <Text style={styles.summaryValue}>{deliveredCount}</Text>
-              <Text style={styles.summaryLabel}>completed</Text>
-            </View>
-          )}
+      <SafeAreaView style={styles.contentContainer} edges={['top']}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>My Deliveries</Text>
+          <Text style={styles.subtitle}>Track your delivery history</Text>
         </View>
-      )}
 
-      {orders.length === 0 ? (
-        <View style={styles.centered}>
-          <Text style={styles.emptyText}>No deliveries yet</Text>
-          <Text style={styles.emptySubText}>
-            Assigned orders will appear here
-          </Text>
-        </View>
-      ) : (
+        {/* Stats */}
+        {orders.length > 0 && (
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <View style={[styles.statIconContainer, { backgroundColor: '#FFF3ED' }]}>
+                <Ionicons name="time" size={18} color={Brand.orange} />
+              </View>
+              <Text style={styles.statValue}>{inProgressCount}</Text>
+              <Text style={styles.statLabel}>In Progress</Text>
+            </View>
+            <View style={styles.statCard}>
+              <View style={[styles.statIconContainer, { backgroundColor: '#DCFCE7' }]}>
+                <Ionicons name="checkmark-done-circle" size={18} color="#22C55E" />
+              </View>
+              <Text style={styles.statValue}>{deliveredCount}</Text>
+              <Text style={styles.statLabel}>Delivered</Text>
+            </View>
+            <View style={styles.statCard}>
+              <View style={[styles.statIconContainer, { backgroundColor: '#DBEAFE' }]}>
+                <Ionicons name="wallet" size={18} color="#3B82F6" />
+              </View>
+              <Text style={styles.statValue}>${totalEarnings.toFixed(0)}</Text>
+              <Text style={styles.statLabel}>Earned</Text>
+            </View>
+          </View>
+        )}
+
         <FlatList
           data={orders}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="bicycle-outline" size={48} color="rgba(255,255,255,0.6)" />
+              </View>
+              <Text style={styles.emptyTitle}>No deliveries yet</Text>
+              <Text style={styles.emptySubtitle}>
+                Assigned orders will appear here
+              </Text>
+            </View>
+          }
           renderItem={({ item }) => (
             <DeliveryCard
               order={item}
@@ -135,134 +184,242 @@ export default function DriverHistoryScreen() {
             />
           )}
         />
-      )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  // ─── Background ──────────────────────────────────────────────
+  bgContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+  },
+  bgImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+  },
+  bgOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  contentContainer: {
+    flex: 1,
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+  },
+
+  // ─── Header ────────────────────────────────────────────────────
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 12,
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
-  summaryRow: {
+  subtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
+  },
+
+  // ─── Stats ─────────────────────────────────────────────────────
+  statsRow: {
     flexDirection: 'row',
-    gap: 12,
     paddingHorizontal: 16,
-    marginBottom: 8,
+    marginBottom: 12,
+    gap: 10,
   },
-  summaryCard: {
+  statCard: {
     flex: 1,
-    backgroundColor: '#FF6B35',
+    backgroundColor: 'rgba(255,255,255,0.95)',
     borderRadius: 16,
-    padding: 16,
+    padding: 14,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
-  summaryCardMuted: {
-    backgroundColor: '#f0f0f0',
+  statIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  summaryValueLight: {
-    fontSize: 28,
+  statValue: {
+    fontSize: 18,
     fontWeight: '800',
-    color: '#fff',
+    color: '#1A1A2E',
   },
-  summaryLabelLight: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 2,
+  statLabel: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '500',
   },
-  summaryValue: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#333',
-  },
-  summaryLabel: {
-    fontSize: 13,
-    color: '#666',
-    marginTop: 2,
-  },
+
+  // ─── List ──────────────────────────────────────────────────────
   list: {
     padding: 16,
+    paddingBottom: 100,
     gap: 12,
   },
+
+  // ─── Card ──────────────────────────────────────────────────────
   card: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 16,
-    padding: 16,
-    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 18,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
   cardActive: {
     borderWidth: 2,
-    borderColor: '#FF6B35',
+    borderColor: Brand.orange,
+  },
+  cardPressed: {
+    opacity: 0.97,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    padding: 14,
+    paddingBottom: 10,
+  },
+  cardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  cardStatusIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   restaurant: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
-    flex: 1,
-    marginRight: 8,
+    fontWeight: '700',
+    color: '#1A1A2E',
+  },
+  orderId: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '500',
+    marginTop: 1,
   },
   statusBadge: {
-    borderRadius: 20,
+    borderRadius: 10,
     paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingVertical: 5,
   },
   statusText: {
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
+  },
+
+  // Card Body
+  cardBody: {
+    paddingHorizontal: 14,
+    paddingBottom: 10,
+  },
+  cardDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   address: {
     fontSize: 13,
-    color: '#777',
+    color: '#6B7280',
+    flex: 1,
   },
+
+  // Card Footer
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: '#F9FAFB',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#F0F0F0',
   },
-  total: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
+  cardFooterLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   date: {
     fontSize: 12,
-    color: '#aaa',
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
+  total: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1A1A2E',
+    letterSpacing: -0.2,
+  },
+
+  // Active Hint
+  activeHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    backgroundColor: '#FFF3ED',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#FED7AA',
   },
   tapHint: {
-    fontSize: 12,
-    color: '#FF6B35',
+    fontSize: 13,
+    color: Brand.orange,
     fontWeight: '600',
-    marginTop: 4,
   },
-  emptyText: {
+
+  // ─── Empty State ───────────────────────────────────────────────
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+  },
+  emptyIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: '700',
+    color: '#FFFFFF',
     marginBottom: 8,
   },
-  emptySubText: {
+  emptySubtitle: {
     fontSize: 14,
-    color: '#999',
+    color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
+    lineHeight: 20,
   },
 });

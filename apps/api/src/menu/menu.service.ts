@@ -55,6 +55,7 @@ export class MenuService {
       .values({ restaurantId: restaurant.id, name: dto.name })
       .returning();
 
+    await this.invalidateMenuCache(restaurant.id);
     return category;
   }
 
@@ -70,7 +71,7 @@ export class MenuService {
       return cached;
     }
 
-    const categories = this.db
+    const categories = await this.db
       .select()
       .from(schema.menuCategories)
       .where(eq(schema.menuCategories.restaurantId, restaurantId));
@@ -106,6 +107,7 @@ export class MenuService {
       .where(eq(schema.menuCategories.id, id))
       .returning();
 
+    await this.invalidateMenuCache(restaurant.id);
     return updated;
   }
 
@@ -130,6 +132,7 @@ export class MenuService {
       .delete(schema.menuCategories)
       .where(eq(schema.menuCategories.id, id));
 
+    await this.invalidateMenuCache(restaurant.id);
     return { message: 'Category deleted' };
   }
 
@@ -149,9 +152,11 @@ export class MenuService {
         description: dto.description,
         price: dto.price,
         imageUrl: dto.imageUrl,
+        isAvailable: true,
       })
       .returning();
 
+    await this.invalidateMenuCache(restaurant.id);
     return item;
   }
 
@@ -168,7 +173,7 @@ export class MenuService {
     }
 
     // returns all items for a restaurant — frontend groups them by category
-    const items = this.db
+    const items = await this.db
       .select()
       .from(schema.menuItems)
       .where(eq(schema.menuItems.restaurantId, restaurantId));
@@ -200,6 +205,7 @@ export class MenuService {
       .where(eq(schema.menuItems.id, id))
       .returning();
 
+    await this.invalidateMenuCache(restaurant.id);
     return updated;
   }
 
@@ -221,6 +227,7 @@ export class MenuService {
 
     await this.db.delete(schema.menuItems).where(eq(schema.menuItems.id, id));
 
+    await this.invalidateMenuCache(restaurant.id);
     return { message: 'Item deleted' };
   }
 }
