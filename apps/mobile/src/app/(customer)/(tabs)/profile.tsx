@@ -43,23 +43,7 @@ export default function ProfileScreen() {
         },
       ],
     },
-    {
-      title: 'Preferences',
-      items: [
-        {
-          icon: 'notifications-outline',
-          label: 'Notifications',
-        },
-        {
-          icon: 'moon-outline',
-          label: 'Dark Mode',
-        },
-        {
-          icon: 'language-outline',
-          label: 'Language',
-        },
-      ],
-    },
+
     {
       title: 'Support',
       items: [
