@@ -243,13 +243,4 @@ pnpm android          # Open Android emulator
 
 ---
 
-## Course
-
-This repo is the companion to the full CodeWithLari food delivery series on YouTube.
-
-📺 [Watch on YouTube](https://youtube.com/@codewithlari)  
-⭐ If this helped you, please star the repo — it helps a lot!
-
----
-
-Built with [NestJS](https://nestjs.com) · [Expo](https://expo.dev) · [CodeWithLari](https://youtube.com/@codewithlari)
+Built with [NestJS](https://nestjs.com) · [Expo](https://expo.dev) · **Samley Technology Team**
