@@ -17,7 +17,7 @@ A complete food delivery platform with three roles — customers order food, res
 
 **Restaurant owner**
 - Register and create one restaurant
-- Upload images via UploadThing
+- Upload images via Cloudinry
 - Manage categories and menu items
 - Receive and update orders (confirmed → preparing → ready)
 - View today's analytics (revenue, status breakdown)
@@ -51,7 +51,7 @@ A complete food delivery platform with three roles — customers order food, res
 | Payments | [Stripe](https://stripe.com) |
 | Real-time | [Socket.IO](https://socket.io) |
 | File uploads | [Cloudinary](https://cloudinary.com) |
-| Shared types | `@food-delivery/types` workspace package |
+| Shared types | `@samleygo-food/types` workspace package |
 | Package manager | pnpm |
 
 ---
